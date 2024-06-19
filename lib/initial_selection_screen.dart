@@ -29,7 +29,7 @@ class InitialSelectionScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SignInScreen()),  // Navigate to SignInScreen
+                  MaterialPageRoute(builder: (context) => SignInPage()),  // Navigate to SignInScreen
                 );
               },
               child: const Text('Coach Attendance'),

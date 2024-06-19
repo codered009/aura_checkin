@@ -1,96 +1,98 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'start_session_screen.dart';
 
 class AtHomeCoachScreen extends StatefulWidget {
-  final List sessions;
+  final String authToken;
 
-  const AtHomeCoachScreen({required this.sessions});
+  AtHomeCoachScreen({required this.authToken});
 
   @override
   _AtHomeCoachScreenState createState() => _AtHomeCoachScreenState();
 }
 
 class _AtHomeCoachScreenState extends State<AtHomeCoachScreen> {
-  List sessions = [];
+  bool _isLoading = true;
+  List<dynamic> _sessions = [];
 
   @override
   void initState() {
     super.initState();
-    sessions = widget.sessions;
     _fetchSessions();
   }
 
   Future<void> _fetchSessions() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('access_token');
-    final url = 'https://dev.web.api.ableaura.com/api/coach/sessions/today';
-
+    final url = Uri.parse('https://dev.web.api.ableaura.com/academy/coach/sessions/today');
     try {
       final response = await http.get(
-        Uri.parse(url),
-        headers: {'Authorization': 'Bearer $accessToken'},
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.authToken}',
+        },
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
           setState(() {
-            sessions = data['data'];
+            _sessions = data['data'];
+            _isLoading = false;
           });
         } else {
-          print('API Error: ${data['message']}');
+          _showErrorSnackBar('Failed to load sessions.');
         }
       } else {
-        print('HTTP Error: ${response.statusCode}');
+        _showErrorSnackBar('Error: ${response.statusCode}');
       }
-    } catch (error) {
-      print('Error: $error');
+    } catch (e) {
+      _showErrorSnackBar('Error: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('At Home Coach Screen'),
+        title: Text('Today\'s Sessions'),
       ),
-      body: sessions.isEmpty ? _buildLoading() : _buildSessionsList(),
-    );
-  }
-
-  Widget _buildLoading() {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
-  }
-
-  Widget _buildSessionsList() {
-    return ListView.builder(
-      itemCount: sessions.length,
-      itemBuilder: (context, index) {
-        final session = sessions[index];
-        return ListTile(
-          title: Text('Session ID: ${session['session_id']}'),
-          subtitle: Text(
-            'Date: ${session['session_date']} - Time: ${session['session_time']}',
-          ),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => StartSessionScreen(
-                  sessionId: session['session_id'],
-                  sessionDate: session['session_date'],
-                  sessionTime: session['session_time'],
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _sessions.isEmpty
+              ? Center(child: Text('No sessions for today.'))
+              : ListView.builder(
+                  itemCount: _sessions.length,
+                  itemBuilder: (context, index) {
+                    final session = _sessions[index];
+                    final customer = session['customer'];
+                    return ListTile(
+                      title: Text('${customer['first_name']} (${customer['phone']})'),
+                      subtitle: Text('${session['date']} ${session['from_time']} - ${session['to_time']}'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StartSessionScreen(
+                              sessionId: session['id'].toString(), // Ensure session ID is a string
+                              authToken: widget.authToken,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

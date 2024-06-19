@@ -1,55 +1,70 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'at_home_coach_screen.dart';
 
-class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
-
+class SignInPage extends StatefulWidget {
   @override
-  _SignInScreenState createState() => _SignInScreenState();
+  _SignInPageState createState() => _SignInPageState();
 }
 
-class _SignInScreenState extends State<SignInScreen> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+class _SignInPageState extends State<SignInPage> {
+  final _formKey = GlobalKey<FormState>();
+  String _email = '';
+  String _password = '';
   bool _isLoading = false;
-  String _errorMessage = '';
 
   Future<void> _signIn() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
-      _errorMessage = '';
     });
 
-    final response = await http.post(
-      Uri.parse('https://dev.web.api.ableaura.com/api/user/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': _usernameController.text,
-        'password': _passwordController.text,
-      }),
-    );
+    final url = Uri.parse('https://dev.web.api.ableaura.com/api/user/auth/login');
+    final body = jsonEncode({
+      'email': _email,
+      'password': _password,
+    });
 
-    final responseData = json.decode(response.body);
-
-    if (response.statusCode == 200 && responseData['success']) {
-      final data = responseData['data'];
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token', data['access_token']);
-      await prefs.setString('first_name', data['user']['first_name']);
-      await prefs.setString('email', data['user']['email']);
-      await prefs.setString('phone', data['user']['phone']);
-
-      // Navigate to Today's Sessions Screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AtHomeCoachScreen(sessions: [])),
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
       );
-    } else {
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['success']) {
+          String authToken = data['data']['access_token'];
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AtHomeCoachScreen(authToken: authToken),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed. Please try again.')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
       setState(() {
-        _errorMessage = responseData['message'] ?? 'Sign-In Failed';
         _isLoading = false;
       });
     }
@@ -59,36 +74,52 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coach Sign-In'),
+        title: Text('Sign In'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(
-                labelText: 'Username',
-                errorText: _errorMessage.isEmpty ? null : _errorMessage,
-              ),
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _signIn,
-                    child: const Text('Sign In'),
+      body: Center(
+        child: _isLoading
+            ? CircularProgressIndicator()
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'Email'),
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          return null;
+                        },
+                        onSaved: (value) {
+                          _email = value!;
+                        },
+                      ),
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'Password'),
+                        obscureText: true,
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          return null;
+                        },
+                        onSaved: (value) {
+                          _password = value!;
+                        },
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _signIn,
+                        child: Text('Sign In'),
+                      ),
+                    ],
                   ),
-          ],
-        ),
+                ),
+              ),
       ),
     );
   }

@@ -1,68 +1,69 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 
 class StartSessionScreen extends StatefulWidget {
-  final int sessionId; // Define sessionId parameter
-  final String sessionDate; // Define sessionDate parameter
-  final String sessionTime; // Define sessionTime parameter
+  final String sessionId;  // sessionId as String
+  final String authToken;
 
-  StartSessionScreen({
-    required this.sessionId,
-    required this.sessionDate,
-    required this.sessionTime,
-  });
+  StartSessionScreen({required this.sessionId, required this.authToken});
 
   @override
   _StartSessionScreenState createState() => _StartSessionScreenState();
 }
 
 class _StartSessionScreenState extends State<StartSessionScreen> {
-  Position? _currentPosition;
-
-  @override
-  void initState() {
-    super.initState();
-    _getCurrentLocation();
-  }
-
-  Future<void> _getCurrentLocation() async {
-    // Location fetching logic here using Geolocator package
-  }
+  bool _isLoading = false;
 
   Future<void> _startSession() async {
-    if (_currentPosition == null) {
-      return;
-    }
+    setState(() {
+      _isLoading = true;
+    });
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('access_token');
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
 
-    final response = await http.post(
-      Uri.parse('https://dev.web.api.ableaura.com/academy/coaches/session/start'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'session_id': widget.sessionId, // Access sessionId from widget
-        'latitude': _currentPosition?.latitude,
-        'longitude': _currentPosition?.longitude,
-      }),
-    );
+    final url = Uri.parse('https://dev.web.api.ableaura.com/academy/coaches/session/start');
+    final body = jsonEncode({
+      'session_id': widget.sessionId,
+      'latitude': position.latitude.toString(),  // Ensure latitude is a string
+      'longitude': position.longitude.toString(), // Ensure longitude is a string
+    });
 
-    if (response.statusCode == 200) {
-      // Handle successful session start
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Session started successfully')),
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.authToken}',
+        },
+        body: body,
       );
-    } else {
-      // Handle error
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Session started successfully!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to start session.')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to start session')),
+        SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -73,10 +74,12 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
         title: Text('Start Session'),
       ),
       body: Center(
-        child: ElevatedButton(
-          onPressed: _startSession,
-          child: Text('Start Session'),
-        ),
+        child: _isLoading
+            ? CircularProgressIndicator()
+            : ElevatedButton(
+                onPressed: _startSession,
+                child: Text('Start Session'),
+              ),
       ),
     );
   }
