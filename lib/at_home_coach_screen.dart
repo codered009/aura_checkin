@@ -23,7 +23,7 @@ class _AtHomeCoachScreenState extends State<AtHomeCoachScreen> {
   }
 
   Future<void> _fetchSessions() async {
-    final url = Uri.parse('https://dev.web.api.ableaura.com/academy/coach/sessions/today');
+    final url = Uri.parse('https://api.web.ableaura.com/academy/coach/sessions/today');
     try {
       final response = await http.post(
         url,

@@ -27,7 +27,7 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
 
   Future<void> _checkSessionStatus() async {
     try {
-      final url = Uri.parse('https://dev.web.api.ableaura.com/academy/coach/session/status');
+      final url = Uri.parse('https://api.web.ableaura.com/academy/coach/session/status');
       final response = await http.post(
         url,
         headers: {
@@ -65,7 +65,7 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      final url = Uri.parse('https://dev.web.api.ableaura.com/academy/coaches/session/start');
+      final url = Uri.parse('https://api.web.ableaura.com/academy/coaches/session/start');
       final response = await http.post(
         url,
         headers: {
@@ -109,7 +109,7 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
 
-      final url = Uri.parse('https://dev.web.api.ableaura.com/academy/coaches/session/complete');
+      final url = Uri.parse('https://api.web.ableaura.com/academy/coaches/session/complete');
       final response = await http.post(
         url,
         headers: {

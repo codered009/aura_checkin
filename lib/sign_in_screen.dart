@@ -24,7 +24,7 @@ class _SignInPageState extends State<SignInPage> {
       _isLoading = true;
     });
 
-    final url = Uri.parse('https://dev.web.api.ableaura.com/api/user/auth/login');
+    final url = Uri.parse('https://api.web.ableaura.com/api/user/auth/login');
     final body = jsonEncode({
       'email': _email,
       'password': _password,
