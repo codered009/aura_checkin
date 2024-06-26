@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'db_helper.dart';
 import 'timing_selection_screen.dart';
+import 'sync_service.dart';
 
 class FranchiseSelectionScreen extends StatefulWidget {
   const FranchiseSelectionScreen({super.key});
@@ -13,88 +13,51 @@ class FranchiseSelectionScreen extends StatefulWidget {
 
 class _FranchiseSelectionScreenState extends State<FranchiseSelectionScreen> {
   List<Map<String, dynamic>> franchises = [];
-  bool isLoading = true;
+  final DBHelper dbHelper = DBHelper.instance;
+  final SyncService syncService = SyncService();
 
   @override
   void initState() {
     super.initState();
-    fetchFranchises();
+    _loadFranchises();
   }
 
-  Future<void> fetchFranchises() async {
-    try {
-      final response = await http.get(Uri.parse('https://api.web.ableaura.com/academy/franchises/list'));
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        setState(() {
-          franchises = List<Map<String, dynamic>>.from(responseData['data']);
-          isLoading = false;
-        });
-      } else {
-        // Handle error
-        showErrorDialog('Failed to load franchises. Please try again.');
-      }
-    } catch (e) {
-      // Handle error
-      showErrorDialog('An error occurred. Please check your internet connection and try again.');
+  Future<void> _loadFranchises() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      // Offline mode
+      franchises = await dbHelper.getFranchises();
+    } else {
+      // Online mode
+      await syncService.synchronizeData();
+      franchises = await dbHelper.getFranchises();
     }
-  }
-
-  void showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Franchise'),
-        backgroundColor: Colors.blueAccent,
+        title: Text('Select Franchise'),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: franchises.length,
-              itemBuilder: (context, index) {
-                final franchise = franchises[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  elevation: 4,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
-                    title: Text(
-                      franchise['franchise_name'],
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    subtitle: Text(
-                      franchise['center']['name'],
-                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    ),
-                    trailing: const Icon(Icons.arrow_forward, color: Colors.blueAccent),
-                    onTap: () async {
-                      SharedPreferences prefs = await SharedPreferences.getInstance();
-                      await prefs.setInt('selectedFranchiseId', franchise['id']);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => TimingSelectionScreen(franchiseId: franchise['id'])),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+      body: ListView.builder(
+        itemCount: franchises.length,
+        itemBuilder: (context, index) {
+          final franchise = franchises[index];
+          return ListTile(
+            title: Text(franchise['franchise_name']),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TimingSelectionScreen(franchiseId: franchise['id']),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

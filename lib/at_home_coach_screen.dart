@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'start_session_screen.dart';
-
+import 'app_drawer.dart'; // Import the drawer
 class AtHomeCoachScreen extends StatefulWidget {
   final String authToken;
 
-  AtHomeCoachScreen({required this.authToken});
+  const AtHomeCoachScreen({super.key, required this.authToken});
 
   @override
   _AtHomeCoachScreenState createState() => _AtHomeCoachScreenState();
@@ -65,12 +65,13 @@ class _AtHomeCoachScreenState extends State<AtHomeCoachScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Today\'s Sessions'),
+        title: const Text('Today\'s Sessions'),
       ),
+       drawer: const AppDrawer(), // Add the drawer here
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : _sessions.isEmpty
-              ? Center(child: Text('No sessions for today.'))
+              ? const Center(child: Text('No sessions for today.'))
               : ListView.builder(
                   itemCount: _sessions.length,
                   itemBuilder: (context, index) {

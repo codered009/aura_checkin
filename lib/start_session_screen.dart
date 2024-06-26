@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'app_drawer.dart'; // Import the drawer
 
 class StartSessionScreen extends StatefulWidget {
   final String sessionId;
   final String authToken;
 
-  StartSessionScreen({required this.sessionId, required this.authToken});
+  const StartSessionScreen({super.key, required this.sessionId, required this.authToken});
 
   @override
   _StartSessionScreenState createState() => _StartSessionScreenState();
@@ -154,11 +155,12 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Start Session'),
+        title: const Text('Start Session'),
       ),
+       drawer: const AppDrawer(), // Add the drawer here
       body: Center(
         child: _sessionCompleted
-            ? Text('Session Completed', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))
+            ? const Text('Session Completed', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -166,15 +168,15 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
                     ElevatedButton(
                       onPressed: _isStarting ? null : _getCurrentLocationAndStartSession,
                       child: _isStarting
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Start Session'),
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Start Session'),
                     ),
                   if (_sessionStarted && !_sessionCompleted)
                     ElevatedButton(
                       onPressed: _isCompleting ? null : _getCurrentLocationAndCompleteSession,
                       child: _isCompleting
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Complete Session'),
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Complete Session'),
                     ),
                 ],
               ),

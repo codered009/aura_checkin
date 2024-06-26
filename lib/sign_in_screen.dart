@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'at_home_coach_screen.dart';
-
+import 'app_drawer.dart'; // Import the drawer
 class SignInPage extends StatefulWidget {
+  const SignInPage({super.key});
+
   @override
   _SignInPageState createState() => _SignInPageState();
 }
@@ -43,6 +45,8 @@ class _SignInPageState extends State<SignInPage> {
         if (data['success']) {
           String authToken = data['data']['access_token'];
 
+           // Initialize location service
+
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -51,7 +55,7 @@ class _SignInPageState extends State<SignInPage> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed. Please try again.')),
+            const SnackBar(content: Text('Login failed. Please try again.')),
           );
         }
       } else {
@@ -74,11 +78,12 @@ class _SignInPageState extends State<SignInPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sign In'),
+        title: const Text('Sign In'),
       ),
+       drawer: const AppDrawer(), // Add the drawer here
       body: Center(
         child: _isLoading
-            ? CircularProgressIndicator()
+            ? const CircularProgressIndicator()
             : Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Form(
@@ -87,7 +92,7 @@ class _SignInPageState extends State<SignInPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       TextFormField(
-                        decoration: InputDecoration(labelText: 'Email'),
+                        decoration: const InputDecoration(labelText: 'Email'),
                         validator: (value) {
                           if (value!.isEmpty) {
                             return 'Please enter your email';
@@ -99,7 +104,7 @@ class _SignInPageState extends State<SignInPage> {
                         },
                       ),
                       TextFormField(
-                        decoration: InputDecoration(labelText: 'Password'),
+                        decoration: const InputDecoration(labelText: 'Password'),
                         obscureText: true,
                         validator: (value) {
                           if (value!.isEmpty) {
@@ -111,10 +116,10 @@ class _SignInPageState extends State<SignInPage> {
                           _password = value!;
                         },
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _signIn,
-                        child: Text('Sign In'),
+                        child: const Text('Sign In'),
                       ),
                     ],
                   ),

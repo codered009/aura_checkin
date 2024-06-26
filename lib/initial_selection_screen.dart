@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'franchise_selection_screen.dart';
 import 'sign_in_screen.dart';  // Import SignInScreen
+import 'app_drawer.dart'; // Import the drawer
 
 class InitialSelectionScreen extends StatelessWidget {
   const InitialSelectionScreen({super.key});
@@ -11,6 +12,7 @@ class InitialSelectionScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Attendance Selection'),
       ),
+      drawer: const AppDrawer(), // Add the drawer here
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -29,7 +31,7 @@ class InitialSelectionScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SignInPage()),  // Navigate to SignInScreen
+                  MaterialPageRoute(builder: (context) => const SignInPage()),  // Navigate to SignInScreen
                 );
               },
               child: const Text('Coach Attendance'),
