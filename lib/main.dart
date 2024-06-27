@@ -1,23 +1,28 @@
-// main.dart
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 import 'initial_selection_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+List<CameraDescription> cameras = [];
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  cameras = await availableCameras();
+  runApp(MyApp(cameras: cameras));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final List<CameraDescription> cameras;
+
+  MyApp({required this.cameras});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Aura Checkin',
+      title: 'Aura Check-In',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const InitialSelectionScreen(),
+      home: InitialSelectionScreen(cameras: cameras),
     );
   }
 }

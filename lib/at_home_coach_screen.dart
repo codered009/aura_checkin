@@ -1,12 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:camera/camera.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'sign_in_screen.dart';
 import 'start_session_screen.dart';
+import 'app_drawer.dart';
 
 class AtHomeCoachScreen extends StatefulWidget {
   final String authToken;
+  final List<CameraDescription> cameras;
 
-  AtHomeCoachScreen({required this.authToken});
+  AtHomeCoachScreen({required this.authToken, required this.cameras});
 
   @override
   _AtHomeCoachScreenState createState() => _AtHomeCoachScreenState();
@@ -61,12 +66,29 @@ class _AtHomeCoachScreenState extends State<AtHomeCoachScreen> {
     );
   }
 
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('authToken'); // Remove the stored authentication token
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => SignInPage(cameras: widget.cameras)),
+      (Route<dynamic> route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Today\'s Sessions'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
       ),
+      drawer: AppDrawer(cameras: widget.cameras),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : _sessions.isEmpty

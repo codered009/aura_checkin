@@ -37,11 +37,9 @@ class _TimingSelectionScreenState extends State<TimingSelectionScreen> {
           isLoading = false;
         });
       } else {
-        // Handle error
         showErrorDialog('Failed to load sessions. Please try again.');
       }
     } catch (e) {
-      // Handle error
       showErrorDialog('An error occurred. Please check your internet connection and try again.');
     }
   }
@@ -90,7 +88,7 @@ class _TimingSelectionScreenState extends State<TimingSelectionScreen> {
                       await prefs.setInt('selectedSessionId', session['id']);
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => const QRCheckInPage()),
+                        MaterialPageRoute(builder: (context) => QRCheckInPage(cameras: [])), // Pass the cameras here
                       );
                     },
                   ),

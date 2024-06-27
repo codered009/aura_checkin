@@ -1,16 +1,21 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'app_drawer.dart';
+import 'qr_check_in_page.dart';
 import 'franchise_selection_screen.dart';
-import 'sign_in_screen.dart';  // Import SignInScreen
 
 class InitialSelectionScreen extends StatelessWidget {
-  const InitialSelectionScreen({super.key});
+  final List<CameraDescription> cameras;
+
+  const InitialSelectionScreen({super.key, required this.cameras});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attendance Selection'),
+        title: const Text('Aura Check-In'),
       ),
+      drawer: AppDrawer(cameras: cameras),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -19,20 +24,19 @@ class InitialSelectionScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const FranchiseSelectionScreen()),
+                  MaterialPageRoute(builder: (context) => FranchiseSelectionScreen()),
                 );
               },
-              child: const Text('Center Attendance'),
+              child: const Text('Franchise Selection'),
             ),
-            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SignInPage()),  // Navigate to SignInScreen
+                  MaterialPageRoute(builder: (context) => QRCheckInPage(cameras: cameras)),
                 );
               },
-              child: const Text('Coach Attendance'),
+              child: const Text('QR Check-In'),
             ),
           ],
         ),

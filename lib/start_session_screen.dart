@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'app_drawer.dart'; // Import the drawer
 
 class StartSessionScreen extends StatefulWidget {
   final String sessionId;
@@ -156,6 +157,7 @@ class _StartSessionScreenState extends State<StartSessionScreen> {
       appBar: AppBar(
         title: Text('Start Session'),
       ),
+      drawer: AppDrawer(cameras: []), // Pass the cameras list if needed
       body: Center(
         child: _sessionCompleted
             ? Text('Session Completed', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))

@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:camera/camera.dart';
+import 'app_drawer.dart';
+
 import 'franchise_selection_screen.dart';
 import 'timing_selection_screen.dart';
-import 'package:geolocator/geolocator.dart';
 
 class QRCheckInPage extends StatefulWidget {
-  const QRCheckInPage({super.key});
+  final List<CameraDescription> cameras;
+
+  const QRCheckInPage({super.key, required this.cameras});
 
   @override
   _QRCheckInPageState createState() => _QRCheckInPageState();
@@ -26,10 +32,17 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
   int? selectedFranchiseId;
   int? selectedSessionId;
 
+  String? studentId;
+  String? studentName;
+  String? studentProfilePic;
+
+  final TextEditingController _manualCodeController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _loadSelectedValues();
+    _manualCodeController.text = 'AAA#';
   }
 
   Future<void> _loadSelectedValues() async {
@@ -43,6 +56,7 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
   @override
   void dispose() {
     _qrViewController?.dispose();
+    _manualCodeController.dispose();
     super.dispose();
   }
 
@@ -78,25 +92,61 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
         title: const Text('QR Check-In'),
         backgroundColor: Colors.blueAccent,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blueAccent, width: 8.0),
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              margin: const EdgeInsets.all(16.0),
-              child: QRView(
-                key: _qrKey,
-                onQRViewCreated: _onQRViewCreated,
+      drawer: AppDrawer(cameras: widget.cameras),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.blueAccent, width: 8.0),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    margin: const EdgeInsets.all(16.0),
+                    child: QRView(
+                      key: _qrKey,
+                      onQRViewCreated: _onQRViewCreated,
+                    ),
+                  ),
+                  if (studentId != null && studentName != null && studentProfilePic != null)
+                    Positioned(
+                      top: 20,
+                      left: 20,
+                      right: 20,
+                      child: Container(
+                        color: Colors.white.withOpacity(0.8),
+                        padding: EdgeInsets.all(10),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundImage: NetworkImage(studentProfilePic!),
+                              radius: 30,
+                            ),
+                            SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ID: $studentId',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Name: $studentName',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
+            Container(
               margin: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -112,6 +162,45 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
                   ),
                   if (isProcessing) const SizedBox(height: 20.0),
                   if (isProcessing) const CircularProgressIndicator(),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _manualCodeController,
+                          decoration: InputDecoration(
+                            labelText: 'Enter QR Code Manually',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            // Custom input formatter to ensure "AAA#" prefix and max 5 digits
+                            TextInputFormatter.withFunction(
+                              (oldValue, newValue) {
+                                if (!newValue.text.startsWith('AAA#')) {
+                                  return oldValue;
+                                }
+                                final digits = newValue.text.substring(4);
+                                if (digits.length > 5 || !RegExp(r'^\d*$').hasMatch(digits)) {
+                                  return oldValue;
+                                }
+                                return newValue;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10.0),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (!isProcessing) {
+                            _handleQRCode(_manualCodeController.text);
+                          }
+                        },
+                        child: const Text('Search'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -130,8 +219,8 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -174,8 +263,12 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
         final responseData = json.decode(response.body);
         setState(() {
           apiResponse = responseData['message'];
+          if (responseData['data'] != null) {
+            studentId = responseData['data']['student_id'];
+            studentName = responseData['data']['student_name'];
+            studentProfilePic = responseData['data']['profile_picture'];
+          }
         });
-        // Check if is_payment_pending is true
         if (responseData['data'] != null && responseData['data']['is_payment_pending'] == true) {
           _playNotificationSound();
         }
@@ -199,6 +292,9 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
         setState(() {
           apiResponse = '';
           scannedCode = null;
+          studentId = null;
+          studentName = null;
+          studentProfilePic = null;
         });
       });
     }
@@ -215,10 +311,18 @@ class _QRCheckInPageState extends State<QRCheckInPage> {
     );
   }
 
-  void _changeSession(BuildContext context) {
+   void _changeSession(BuildContext context) {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => TimingSelectionScreen(franchiseId: selectedFranchiseId!)),
     );
+  }
+
+  void _playSuccessNotificationSound() async {
+    await _audioPlayer.play(AssetSource('success.mp3'));
+  }
+
+  void _playExistsNotificationSound() async {
+    await _audioPlayer.play(AssetSource('exists.mp3'));
   }
 }
